@@ -21,6 +21,8 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+
+    void updateConsole(const QString &output);
 };
 
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <QThread>
 
 #include "mainwindow.h"
 #include "ui_MainWindow.h"
@@ -21,10 +22,20 @@ void MainWindow::on_connectButton_clicked() {
     std::string username = ui->usernameEdit->text().toStdString();
     std::string password = ui->passwordEdit->text().toStdString();
 
-    RemoteShell connection(ip, username, password);
-    std::cout << "Connected!" << std::endl;
+    QThread* thread = new QThread();
+    RemoteShell* worker = new RemoteShell(ip, username, password, nullptr);
+    worker->moveToThread(thread);
 
-    std::cout << "output: " << connection.readOutput() << std::endl;
+    connect(thread, &QThread::started, worker, &RemoteShell::start);
+    connect(worker, &RemoteShell::newOutput, this, &MainWindow::updateConsole);
+    connect(thread, &QThread::finished, worker, &RemoteShell::deleteLater);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+    thread->start();
 
     ui->loginAndTerminal->setCurrentIndex(1);
+}
+
+void MainWindow::updateConsole(const QString& output) {
+    ui->console->appendPlainText(output);
 }

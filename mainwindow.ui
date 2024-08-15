@@ -121,7 +121,7 @@
       </widget>
      </widget>
      <widget class="QWidget" name="page_2">
-      <widget class="QPlainTextEdit" name="plainTextEdit">
+      <widget class="QPlainTextEdit" name="console">
        <property name="geometry">
         <rect>
          <x>0</x>

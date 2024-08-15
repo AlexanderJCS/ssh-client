@@ -2,6 +2,9 @@
 
 #include <libssh/libssh.h>
 #include <iostream>
+#include <regex>
+#include <QtCore>
+#include <QTimer>
 
 
 namespace {
@@ -95,10 +98,17 @@ namespace {
 }
 
 
-RemoteShell::RemoteShell(const std::string& ip, const std::string& username, const std::string& password) {
+RemoteShell::RemoteShell(const std::string& ip, const std::string& username, const std::string& password, QObject* parent)
+        : QObject(parent), session(nullptr), shellChannel(nullptr), running(false) {
     session = connect(ip, username, password);
     shellChannel = openShell(session);
 }
+
+//RemoteShell::RemoteShell(const std::string& ip, const std::string& username, const std::string& password) {
+//    session = connect(ip, username, password);
+//    shellChannel = openShell(session);
+//    running = false;
+//}
 
 RemoteShell::~RemoteShell() {
     disconnect();
@@ -137,32 +147,42 @@ ssh_session RemoteShell::connect(const std::string& ip, const std::string& usern
     return sshSession;
 }
 
-#include <regex>
+void RemoteShell::start() {
+    std::cout << "starting" << std::endl;
+    running = true;
+    QTimer* timer = new QTimer(this);
+    QObject::connect(timer, &QTimer::timeout, this, &RemoteShell::readOutput);
+    timer->start(100); // Adjust the interval as needed
+}
 
-std::string RemoteShell::readOutput() {
+void RemoteShell::stop() {
+    running = false;
+    std::cout << "stopped running" << std::endl;
+    // Clean up SSH session and channel here
+}
+
+void RemoteShell::readOutput() {
     if (shellChannel == nullptr) {
-        return "";
+        std::cerr << "Error reading output: shellChannel is null" << std::endl;
+        return;
     }
 
-    char buffer[1024];
-    std::string output;
+    char buffer[256];
 
-    int nbytes = ssh_channel_read(shellChannel, buffer, sizeof(buffer), 0);
-    while (nbytes > 0) {
-        output.append(buffer, nbytes);
-        nbytes = ssh_channel_read(shellChannel, buffer, sizeof(buffer), 0);
+    std::cout << "starting to read output" << std::endl;
+
+    while (ssh_channel_is_open(shellChannel) && !ssh_channel_is_eof(shellChannel)) {
+        int nbytes = ssh_channel_read(shellChannel, buffer, sizeof buffer, 0);
+        if (nbytes < 0) {
+            std::cerr << "Error reading output" << std::endl;
+            continue;
+        }
+
+        if (nbytes > 0) {
+            std::cout << std::string(buffer, nbytes);
+            emit newOutput(QString::fromStdString(std::string(buffer, nbytes)));
+        }
     }
-
-    if (nbytes < 0) {
-        std::cerr << "Error reading output" << std::endl;
-        return "";
-    }
-
-    // Remove ANSI escape codes
-    std::regex ansiEscapeCodeRegex(R"(\x1B\[[0-9;]*[A-Za-z])");
-    output = std::regex_replace(output, ansiEscapeCodeRegex, "");
-
-    return output;
 }
 
 ssh_channel RemoteShell::openShell(ssh_session session) {
