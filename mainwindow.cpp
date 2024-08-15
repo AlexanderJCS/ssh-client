@@ -9,6 +9,7 @@
 MainWindow::MainWindow(QWidget *parent) :
         QWidget(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
+    shell = nullptr;
 }
 
 MainWindow::~MainWindow() {
@@ -16,19 +17,17 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::on_connectButton_clicked() {
-    std::cout << "Connecting..." << std::endl;
-
     std::string ip = ui->ipEdit->text().toStdString();
     std::string username = ui->usernameEdit->text().toStdString();
     std::string password = ui->passwordEdit->text().toStdString();
 
     QThread* thread = new QThread();
-    RemoteShell* worker = new RemoteShell(ip, username, password, nullptr);
-    worker->moveToThread(thread);
+    shell = new RemoteShell(ip, username, password, nullptr);
+    shell->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, &RemoteShell::start);
-    connect(worker, &RemoteShell::newOutput, this, &MainWindow::updateConsole);
-    connect(thread, &QThread::finished, worker, &RemoteShell::deleteLater);
+    connect(thread, &QThread::started, shell, &RemoteShell::start);
+    connect(shell, &RemoteShell::newOutput, this, &MainWindow::updateConsole);
+    connect(thread, &QThread::finished, shell, &RemoteShell::deleteLater);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 
     thread->start();

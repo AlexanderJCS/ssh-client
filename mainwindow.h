@@ -2,6 +2,7 @@
 #define QTTEST2_MAINWINDOW_H
 
 #include <QWidget>
+#include "ssh/shell.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -21,6 +22,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    RemoteShell *shell;
 
     void updateConsole(const QString &output);
 };
