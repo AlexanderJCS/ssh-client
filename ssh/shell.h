@@ -1,22 +1,24 @@
-#ifndef QTTEST2_CONNECTION_H
-#define QTTEST2_CONNECTION_H
+#ifndef QTTEST2_SHELL_H
+#define QTTEST2_SHELL_H
 
 #include <string>
 #include <libssh/libssh.h>
 
-class SSHConnection {
+class RemoteShell {
 private:
     ssh_session session;
+    ssh_channel shell;
 
     static ssh_session connect(const std::string& ip, const std::string& username, const std::string& password);
+    static ssh_channel openShell(ssh_session session);
     void disconnect();
 
 public:
-    SSHConnection(const std::string& ip, const std::string& username, const std::string& password);
-    ~SSHConnection();
+    RemoteShell(const std::string& ip, const std::string& username, const std::string& password);
+    ~RemoteShell();
 
     std::string executeCommand(const std::string& command);
 };
 
 
-#endif // QTTEST2_CONNECTION_H
+#endif // QTTEST2_SHELL_H

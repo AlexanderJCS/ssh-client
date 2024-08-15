@@ -28,8 +28,8 @@ add_executable(qttest2 main.cpp
         mainwindow.ui
         qtutils/utils.cpp
         qtutils/utils.h
-        ssh/connection.cpp
-        ssh/connection.h
+        ssh/shell.cpp
+        ssh/shell.h
 )
 
 target_link_libraries(qttest2

@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_MainWindow.h"
 
-#include "ssh/connection.h"
+#include "ssh/shell.h"
 
 MainWindow::MainWindow(QWidget *parent) :
         QWidget(parent), ui(new Ui::MainWindow) {
@@ -21,7 +21,7 @@ void MainWindow::on_connectButton_clicked() {
     std::string username = ui->usernameEdit->text().toStdString();
     std::string password = ui->passwordEdit->text().toStdString();
 
-    SSHConnection connection(ip, username, password);
+    RemoteShell connection(ip, username, password);
     std::cout << "Connected!" << std::endl;
 
     ui->loginAndTerminal->setCurrentIndex(1);

@@ -1,4 +1,4 @@
-#include "connection.h"
+#include "shell.h"
 
 #include <libssh/libssh.h>
 #include <iostream>
@@ -95,15 +95,16 @@ namespace {
 }
 
 
-SSHConnection::SSHConnection(const std::string& ip, const std::string& username, const std::string& password) {
+RemoteShell::RemoteShell(const std::string& ip, const std::string& username, const std::string& password) {
     session = connect(ip, username, password);
+    shell = openShell(session);
 }
 
-SSHConnection::~SSHConnection() {
+RemoteShell::~RemoteShell() {
     disconnect();
 }
 
-ssh_session SSHConnection::connect(const std::string& ip, const std::string& username, const std::string& password) {
+ssh_session RemoteShell::connect(const std::string& ip, const std::string& username, const std::string& password) {
     ssh_session sshSession = ssh_new();
     if (sshSession == nullptr) {
         return nullptr;
@@ -136,7 +137,53 @@ ssh_session SSHConnection::connect(const std::string& ip, const std::string& use
     return sshSession;
 }
 
-void SSHConnection::disconnect() {
+ssh_channel RemoteShell::openShell(ssh_session session) {
+    if (session == nullptr) {
+        return nullptr;
+    }
+
+    ssh_channel channel = ssh_channel_new(session);
+    if (channel == nullptr) {
+        std::cerr << "Error creating channel: " << ssh_get_error(session) << std::endl;
+        return nullptr;
+    }
+
+    int rc = ssh_channel_open_session(channel);
+    if (rc != SSH_OK) {
+        std::cerr << "Error opening channel: " << ssh_get_error(session) << std::endl;
+        ssh_channel_free(channel);
+        return nullptr;
+    }
+
+    rc = ssh_channel_request_pty(channel);
+    if (rc != SSH_OK) {
+        std::cerr << "Error requesting pty: " << ssh_get_error(session) << std::endl;
+        ssh_channel_close(channel);
+        ssh_channel_free(channel);
+        return nullptr;
+    }
+
+    // todo: make the pty size dependent on window size
+//    rc = ssh_channel_change_pty_size(channel, 80, 24);
+//    if (rc != SSH_OK) {
+//        std::cerr << "Error changing pty size: " << ssh_get_error(session) << std::endl;
+//        ssh_channel_close(channel);
+//        ssh_channel_free(channel);
+//        return nullptr;
+//    }
+
+    rc = ssh_channel_request_shell(channel);
+    if (rc != SSH_OK) {
+        std::cerr << "Error requesting shell: " << ssh_get_error(session) << std::endl;
+        ssh_channel_close(channel);
+        ssh_channel_free(channel);
+        return nullptr;
+    }
+
+    return channel;
+}
+
+void RemoteShell::disconnect() {
     if (session == nullptr) {
         return;
     }
@@ -146,7 +193,7 @@ void SSHConnection::disconnect() {
     session = nullptr;
 }
 
-std::string SSHConnection::executeCommand(const std::string& command) {
+std::string RemoteShell::executeCommand(const std::string& command) {
     ssh_channel channel = ssh_channel_new(session);
     if (channel == nullptr) {
         std::cerr << "Error creating channel: " << ssh_get_error(session) << std::endl;
