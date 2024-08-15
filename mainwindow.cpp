@@ -24,5 +24,7 @@ void MainWindow::on_connectButton_clicked() {
     RemoteShell connection(ip, username, password);
     std::cout << "Connected!" << std::endl;
 
+    std::cout << "output: " << connection.readOutput() << std::endl;
+
     ui->loginAndTerminal->setCurrentIndex(1);
 }

@@ -7,7 +7,7 @@
 class RemoteShell {
 private:
     ssh_session session;
-    ssh_channel shell;
+    ssh_channel shellChannel;
 
     static ssh_session connect(const std::string& ip, const std::string& username, const std::string& password);
     static ssh_channel openShell(ssh_session session);
@@ -18,6 +18,7 @@ public:
     ~RemoteShell();
 
     std::string executeCommand(const std::string& command);
+    std::string readOutput();
 };
 
 

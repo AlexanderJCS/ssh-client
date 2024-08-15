@@ -97,7 +97,7 @@ namespace {
 
 RemoteShell::RemoteShell(const std::string& ip, const std::string& username, const std::string& password) {
     session = connect(ip, username, password);
-    shell = openShell(session);
+    shellChannel = openShell(session);
 }
 
 RemoteShell::~RemoteShell() {
@@ -137,6 +137,34 @@ ssh_session RemoteShell::connect(const std::string& ip, const std::string& usern
     return sshSession;
 }
 
+#include <regex>
+
+std::string RemoteShell::readOutput() {
+    if (shellChannel == nullptr) {
+        return "";
+    }
+
+    char buffer[1024];
+    std::string output;
+
+    int nbytes = ssh_channel_read(shellChannel, buffer, sizeof(buffer), 0);
+    while (nbytes > 0) {
+        output.append(buffer, nbytes);
+        nbytes = ssh_channel_read(shellChannel, buffer, sizeof(buffer), 0);
+    }
+
+    if (nbytes < 0) {
+        std::cerr << "Error reading output" << std::endl;
+        return "";
+    }
+
+    // Remove ANSI escape codes
+    std::regex ansiEscapeCodeRegex(R"(\x1B\[[0-9;]*[A-Za-z])");
+    output = std::regex_replace(output, ansiEscapeCodeRegex, "");
+
+    return output;
+}
+
 ssh_channel RemoteShell::openShell(ssh_session session) {
     if (session == nullptr) {
         return nullptr;
@@ -174,7 +202,7 @@ ssh_channel RemoteShell::openShell(ssh_session session) {
 
     rc = ssh_channel_request_shell(channel);
     if (rc != SSH_OK) {
-        std::cerr << "Error requesting shell: " << ssh_get_error(session) << std::endl;
+        std::cerr << "Error requesting shellChannel: " << ssh_get_error(session) << std::endl;
         ssh_channel_close(channel);
         ssh_channel_free(channel);
         return nullptr;
